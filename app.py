@@ -75,6 +75,17 @@ def handle_answer(data):
 def handle_ice_candidate(data):
     emit('ice_candidate', data, broadcast=True, include_self=False)
 
+@socketio.on('skip_user')
+def handle_skip_user(data):
+    user_id = data['user_id']
+    if user_id in waiting_users:
+        waiting_users.remove(user_id)
+        print(f'{user_id} has skipped the current user. Waiting users: {waiting_users}')
+        
+        # Try to match again if there are enough waiting users
+        try_to_match(user_id)
+
+
 @socketio.on('disconnect')
 def handle_disconnect():
     user_id = request.sid  # Use session ID as user identifier
