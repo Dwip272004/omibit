@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
 import random
-
 import os
+
 app = Flask(__name__)
 socketio = SocketIO(app)
 
@@ -18,14 +18,24 @@ def handle_join(data):
     user_id = data['user_id']
     active_users.add(user_id)
     print(f'{user_id} joined. Active users: {active_users}')
+    
+    # Emit joined message to all clients
     emit('joined', {'message': f'User {user_id} has joined', 'user_id': user_id}, broadcast=True)
+    
+    # Emit the updated list of active users
+    emit('active_users', {'users': list(active_users)}, broadcast=True)
 
 @socketio.on('leave')
 def handle_leave(data):
     user_id = data['user_id']
     active_users.discard(user_id)
     print(f'{user_id} left. Active users: {active_users}')
+    
+    # Emit left message to all clients
     emit('left', {'message': f'User {user_id} has left', 'user_id': user_id}, broadcast=True)
+    
+    # Emit the updated list of active users
+    emit('active_users', {'users': list(active_users)}, broadcast=True)
 
 @socketio.on('request_match')
 def handle_request_match(data):
@@ -56,8 +66,13 @@ def handle_disconnect():
     user_id = request.sid  # Use session ID as user identifier
     active_users.discard(user_id)
     print(f'{user_id} disconnected. Active users: {active_users}')
+    
+    # Emit left message to all clients
     emit('left', {'message': f'User {user_id} has disconnected', 'user_id': user_id}, broadcast=True)
+    
+    # Emit the updated list of active users
+    emit('active_users', {'users': list(active_users)}, broadcast=True)
 
-if __name__ == '__main__': # Initialize the SQLite database
+if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Get the port from environment variables or use 5000
     socketio.run(app, host='0.0.0.0', port=port, debug=True)
