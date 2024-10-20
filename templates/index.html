@@ -147,6 +147,12 @@
             peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
                 .catch(error => console.error('Error adding received ICE candidate:', error));
         });
+        // Inside your existing script tag
+socket.on('active_users', function(data) {
+    console.log('Current active users:', data.users);
+    // You can update the UI here to display the list of active users
+});
+
     </script>
 </body>
 </html>
