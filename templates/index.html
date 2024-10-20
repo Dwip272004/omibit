@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Video Call Platform</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        #video-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        video {
+            width: 45%;
+            margin: 0 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        #message {
+            margin-top: 20px;
+            font-size: 1.5em;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Random Video Call Platform</h1>
+    <div id="message">Connecting you to another user...</div>
+
+    <div id="video-container">
+        <video id="localVideo" autoplay playsinline muted></video>
+        <video id="remoteVideo" autoplay playsinline></video>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script>
+        const socket = io.connect(); // Connect to the server
+        let localStream;
+        let peerConnection;
+
+        // Configuration for WebRTC STUN server
+        const configuration = {
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        };
+
+        // Generate a random user ID
+        const userId = Math.random().toString(36).substring(7);
+        socket.emit('join', { user_id: userId });
+
+        // Request media stream (camera and microphone)
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(stream => {
+                localStream = stream;
+                document.getElementById('localVideo').srcObject = stream;
+            })
+            .catch(error => {
+                console.error('Error accessing media devices.', error);
+                document.getElementById('message').innerText = 'Error accessing media devices.';
+            });
+
+        // Handle matching with another user
+        socket.on('match', function(data) {
+            const matchedUserId = data.user_id;
+            document.getElementById('message').innerText = `You are connected with User: ${matchedUserId}`;
+            startCall(matchedUserId);
+        });
+
+        // Handle no users available
+        socket.on('no_users', function(message) {
+            document.getElementById('message').innerText = message;
+        });
+
+        // WebRTC connection setup
+        function startCall(remoteUserId) {
+            peerConnection = new RTCPeerConnection(configuration);
+
+            // Add local stream to the peer connection
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            // Create an offer and send to the remote peer via signaling server (Socket.io)
+            peerConnection.createOffer()
+                .then(offer => {
+                    peerConnection.setLocalDescription(offer);
+                    socket.emit('offer', { offer: offer, to: remoteUserId });
+                })
+                .catch(error => console.error('Error creating offer:', error));
+
+            // Handle ICE candidates
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    socket.emit('ice-candidate', { candidate: event.candidate, to: remoteUserId });
+                }
+            };
+
+            // Display remote stream when received
+            peerConnection.ontrack = event => {
+                document.getElementById('remoteVideo').srcObject = event.streams[0];
+            };
+        }
+
+        // Receive an offer from another user
+        socket.on('offer', function(data) {
+            const remoteUserId = data.from;
+            peerConnection = new RTCPeerConnection(configuration);
+
+            // Add local stream to the peer connection
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            // Set the received offer as remote description
+            peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+                .then(() => {
+                    return peerConnection.createAnswer();
+                })
+                .then(answer => {
+                    peerConnection.setLocalDescription(answer);
+                    socket.emit('answer', { answer: answer, to: remoteUserId });
+                })
+                .catch(error => console.error('Error receiving offer:', error));
+
+            // Handle ICE candidates
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    socket.emit('ice-candidate', { candidate: event.candidate, to: remoteUserId });
+                }
+            };
+
+            // Display remote stream when received
+            peerConnection.ontrack = event => {
+                document.getElementById('remoteVideo').srcObject = event.streams[0];
+            };
+        });
+
+        // Receive an answer from the remote peer
+        socket.on('answer', function(data) {
+            peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
+                .catch(error => console.error('Error setting remote description:', error));
+        });
+
+        // Handle ICE candidates from the other peer
+        socket.on('ice-candidate', function(data) {
+            peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
+                .catch(error => console.error('Error adding received ICE candidate:', error));
+        });
+    </script>
+</body>
+</html>

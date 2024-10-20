@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: random-video-call-platform
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    autoDeploy: true
+    routes:
+      - src: /
+        dest: /
+    environment:
+      FLASK_ENV: production
