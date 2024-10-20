@@ -31,6 +31,18 @@
         #controls {
             margin: 10px;
         }
+        #skipButton {
+            margin-top: 10px;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #skipButton:disabled {
+            background-color: #c0c0c0;
+        }
     </style>
 </head>
 <body>
@@ -40,6 +52,7 @@
         <video id="remoteVideo" autoplay></video>
     </div>
     <div id="message">Connecting...</div>
+    <button id="skipButton" disabled>Skip Current User</button> <!-- Skip button -->
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
     <script>
@@ -71,12 +84,24 @@
         socket.on('match_found', function(data) {
             const matchedUserId = data.matched_user;
             document.getElementById('message').innerText = `You are connected with User: ${matchedUserId}`;
+            document.getElementById('skipButton').disabled = true; // Disable skip button when matched
             startCall(matchedUserId);
+        });
+
+        // Handle waiting for match
+        socket.on('waiting_for_match', function(data) {
+            document.getElementById('message').innerText = data.message;
+            document.getElementById('skipButton').disabled = false; // Enable skip button when waiting
         });
 
         // Handle no users available
         socket.on('no_users_available', function(message) {
             document.getElementById('message').innerText = message;
+        });
+
+        // Skip the current waiting user
+        document.getElementById('skipButton').addEventListener('click', function() {
+            socket.emit('skip_user', { user_id: userId }); // Emit event to skip current user
         });
 
         // WebRTC connection setup
