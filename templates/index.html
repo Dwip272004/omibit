@@ -32,22 +32,7 @@
             margin: 10px;
         }
         button {
-            margin: 5px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .leave-btn {
-            background-color: #ff4d4d;
-            color: white;
-            border: none;
-            border-radius: 5px;
-        }
-        .skip-btn {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
+            margin: 10px;
         }
     </style>
 </head>
@@ -59,17 +44,15 @@
         <video id="remoteVideo" autoplay></video>
     </div>
     <div id="message">Connecting...</div>
-    <div>
-        <button class="leave-btn" id="leaveBtn">Leave</button>
-        <button class="skip-btn" id="skipBtn">Skip</button>
-    </div>
+    <button id="skipButton">Skip</button>
+    <button id="leaveButton">Leave</button>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
     <script>
         const socket = io.connect();
         let localStream;
         let peerConnection;
-        let currentMatchId = null;  // Store the ID of the current matched user
+        let currentMatchId;
 
         // Configuration for WebRTC STUN server
         const configuration = {
@@ -80,8 +63,7 @@
 
         // Generate a random user ID (or use a real user authentication system)
         const userId = Math.random().toString(36).substring(7);
-        const userName = prompt('Enter your name:');  // Ask for the user's name
-        socket.emit('join', { user_id: userId, user_name: userName });
+        socket.emit('join', { user_id: userId });
 
         // Request media stream (camera and microphone)
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -93,14 +75,13 @@
             .catch(error => console.error('Error accessing media devices.', error));
 
         // Handle matching with another user
-socket.on('match_found', function(data) {
-    const matchedUserId = data.matched_user_id;
-    const matchedUserName = data.matched_user;  // Correctly access matched user's name
-    currentMatchId = matchedUserId;  // Store the matched user ID
-    document.getElementById('message').innerText = `You are connected with ${matchedUserName}`;
-    startCall(matchedUserId);
-});
-
+        socket.on('match_found', function(data) {
+            const matchedUserId = data.matched_user_id;
+            const matchedUserName = data.matched_user;  // Correctly access matched user's name
+            currentMatchId = matchedUserId;  // Store the matched user ID
+            document.getElementById('message').innerText = `You are connected with ${matchedUserName}`;
+            startCall(matchedUserId);
+        });
 
         // Handle no users available
         socket.on('no_users_available', function(message) {
@@ -194,24 +175,37 @@ socket.on('match_found', function(data) {
                 .catch(error => console.error('Error adding received ICE candidate:', error));
         });
 
-        // Handle the Leave button
-        document.getElementById('leaveBtn').addEventListener('click', () => {
-            socket.emit('leave', { user_id: userId });
-            peerConnection.close();
-            document.getElementById('message').innerText = "You left the chat.";
+        // Skip to the next user
+        document.getElementById('skipButton').addEventListener('click', function() {
+            if (peerConnection) {
+                peerConnection.close();  // Close the current WebRTC connection
+                peerConnection = null;
+            }
+            socket.emit('request_match', { user_id: userId });  // Request a new match
             document.getElementById('remoteVideo').srcObject = null;  // Clear the remote video
+            document.getElementById('message').innerText = 'Searching for a new user...';
         });
 
-        // Handle the Skip button
-        document.getElementById('skipBtn').addEventListener('click', () => {
-            if (currentMatchId) {
-                socket.emit('leave', { user_id: userId });  // Leave the current chat
-                peerConnection.close();
-                document.getElementById('remoteVideo').srcObject = null;  // Clear the remote video
-                document.getElementById('message').innerText = "Skipping to another user...";
-                socket.emit('request_match', { user_id: userId });  // Request a new match
+        // Leave the chat
+        document.getElementById('leaveButton').addEventListener('click', function() {
+            if (peerConnection) {
+                peerConnection.close();  // Close the current WebRTC connection
+                peerConnection = null;
+            }
+            socket.emit('leave', { user_id: userId });  // Leave the chat
+            document.getElementById('remoteVideo').srcObject = null;  // Clear the remote video
+            document.getElementById('message').innerText = 'You have left the chat.';
+        });
+
+        // Log out user when they close the tab or browser
+        window.addEventListener('beforeunload', function() {
+            socket.emit('leave', { user_id: userId });
+            if (peerConnection) {
+                peerConnection.close();  // Close the current WebRTC connection
+                peerConnection = null;
             }
         });
+
     </script>
 </body>
 </html>
