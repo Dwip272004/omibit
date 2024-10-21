@@ -22,8 +22,11 @@ def handle_join(data):
     # Emit joined message to all clients
     emit('joined', {'message': f'User {user_id} has joined', 'user_id': user_id}, broadcast=True)
     
-    # Emit the updated list of active users
+    # Emit the updated list of active users to all clients
     emit('active_users', {'users': list(active_users)}, broadcast=True)
+    
+    # Emit the user_id back to the client who joined
+    emit('your_user_id', {'user_id': user_id}, room=request.sid)
 
 @socketio.on('leave')
 def handle_leave(data):
