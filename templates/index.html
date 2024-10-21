@@ -93,14 +93,12 @@
             .catch(error => console.error('Error accessing media devices.', error));
 
         // Handle matching with another user
-socket.on('match_found', function(data) {
-    const matchedUserId = data.matched_user_id;
-    const matchedUserName = data.matched_user;  // Correctly access matched user's name
-    currentMatchId = matchedUserId;  // Store the matched user ID
-    document.getElementById('message').innerText = `You are connected with ${matchedUserName}`;
-    startCall(matchedUserId);
-});
-
+        socket.on('match_found', function(data) {
+            const matchedUserId = data.matched_user_id;
+            currentMatchId = matchedUserId;  // Store the matched user ID
+            document.getElementById('message').innerText = `You are connected with ${data.matched_user}`;
+            startCall(matchedUserId);
+        });
 
         // Handle no users available
         socket.on('no_users_available', function(message) {
