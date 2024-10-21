@@ -6,8 +6,8 @@ import os
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-# In-memory set to store active users
-active_users = set()
+# In-memory dictionary to store active users as {user_id: user_name}
+active_users = {}
 
 @app.route('/')
 def index():
@@ -16,38 +16,48 @@ def index():
 @socketio.on('join')
 def handle_join(data):
     user_id = data['user_id']
-    active_users.add(user_id)
-    print(f'{user_id} joined. Active users: {active_users}')
+    user_name = data['user_name']  # Name sent from the client
+    
+    # Store the user's ID and name in the active_users dictionary
+    active_users[user_id] = user_name
+    print(f'{user_name} ({user_id}) joined. Active users: {active_users}')
     
     # Emit joined message to all clients
-    emit('joined', {'message': f'User {user_id} has joined', 'user_id': user_id}, broadcast=True)
+    emit('joined', {'message': f'{user_name} has joined', 'user_id': user_id, 'user_name': user_name}, broadcast=True)
     
     # Emit the updated list of active users to all clients
-    emit('active_users', {'users': list(active_users)}, broadcast=True)
+    emit('active_users', {'users': [{'user_id': uid, 'user_name': uname} for uid, uname in active_users.items()]}, broadcast=True)
     
-    # Emit the user_id back to the client who joined
-    emit('your_user_id', {'user_id': user_id}, room=request.sid)
+    # Emit the user_id and user_name back to the client who joined
+    emit('your_user_id', {'user_id': user_id, 'user_name': user_name}, room=request.sid)
 
 @socketio.on('leave')
 def handle_leave(data):
     user_id = data['user_id']
-    active_users.discard(user_id)
-    print(f'{user_id} left. Active users: {active_users}')
+    user_name = active_users.get(user_id, 'Unknown User')
+    
+    # Remove the user from the active users list
+    if user_id in active_users:
+        del active_users[user_id]
+    
+    print(f'{user_name} ({user_id}) left. Active users: {active_users}')
     
     # Emit left message to all clients
-    emit('left', {'message': f'User {user_id} has left', 'user_id': user_id}, broadcast=True)
+    emit('left', {'message': f'{user_name} has left', 'user_id': user_id}, broadcast=True)
     
     # Emit the updated list of active users
-    emit('active_users', {'users': list(active_users)}, broadcast=True)
+    emit('active_users', {'users': [{'user_id': uid, 'user_name': uname} for uid, uname in active_users.items()]}, broadcast=True)
 
 @socketio.on('request_match')
 def handle_request_match(data):
     user_id = data['user_id']
+    user_name = active_users.get(user_id, 'Unknown User')
 
     if len(active_users) > 1:  # There should be at least two users for a match
-        available_users = list(active_users - {user_id})  # Exclude the requester
+        available_users = [(uid, uname) for uid, uname in active_users.items() if uid != user_id]  # Exclude the requester
         match = random.choice(available_users)
-        emit('match_found', {'matched_user': match}, room=request.sid)
+        matched_user_id, matched_user_name = match
+        emit('match_found', {'matched_user': matched_user_name, 'matched_user_id': matched_user_id}, room=request.sid)
     else:
         emit('no_users_available', {'message': 'No users available at the moment'}, room=request.sid)
 
@@ -67,14 +77,19 @@ def handle_ice_candidate(data):
 @socketio.on('disconnect')
 def handle_disconnect():
     user_id = request.sid  # Use session ID as user identifier
-    active_users.discard(user_id)
-    print(f'{user_id} disconnected. Active users: {active_users}')
+    user_name = active_users.get(user_id, 'Unknown User')
+    
+    # Remove the user from the active users list
+    if user_id in active_users:
+        del active_users[user_id]
+    
+    print(f'{user_name} ({user_id}) disconnected. Active users: {active_users}')
     
     # Emit left message to all clients
-    emit('left', {'message': f'User {user_id} has disconnected', 'user_id': user_id}, broadcast=True)
+    emit('left', {'message': f'{user_name} has disconnected', 'user_id': user_id}, broadcast=True)
     
     # Emit the updated list of active users
-    emit('active_users', {'users': list(active_users)}, broadcast=True)
+    emit('active_users', {'users': [{'user_id': uid, 'user_name': uname} for uid, uname in active_users.items()]}, broadcast=True)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Get the port from environment variables or use 5000
