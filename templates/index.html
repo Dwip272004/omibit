@@ -35,7 +35,7 @@
 </head>
 <body>
     <h1>Omegle</h1>
-    <div id="userIdDisplay">Your User ID: </div>
+    <div id="userIdDisplay">Your User Name & ID: </div>
     <div id="controls">
         <video id="localVideo" autoplay muted></video>
         <video id="remoteVideo" autoplay></video>
@@ -48,16 +48,28 @@
         let localStream;
         let peerConnection;
 
+        // Ask for the user's name
+        const userName = prompt("Please enter your name:");
+        if (!userName) {
+            alert("You need to enter your name to continue.");
+            throw new Error("No name provided.");
+        }
+
+        // Generate a unique user ID based on the user's name and a random string
+        const userId = `${userName}-${Math.random().toString(36).substring(7)}`;
+
+        // Display the user's name and ID on the page
+        document.getElementById('userIdDisplay').innerText = `Your Name: ${userName}, Your User ID: ${userId}`;
+
+        // Emit the 'join' event with the user's name and ID
+        socket.emit('join', { user_id: userId, user_name: userName });
+
         // Configuration for WebRTC STUN server
         const configuration = {
             iceServers: [{
                 urls: 'stun:stun.l.google.com:19302'
             }]
         };
-
-        // Generate a random user ID (or use a real user authentication system)
-        const userId = Math.random().toString(36).substring(7);
-        socket.emit('join', { user_id: userId });
 
         // Request media stream (camera and microphone)
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -70,21 +82,18 @@
 
         // Handle matching with another user
         socket.on('match_found', function(data) {
-            const matchedUserId = data.matched_user;
-            document.getElementById('message').innerText = `You are connected with User: ${matchedUserId}`;
-            startCall(matchedUserId);
+            const matchedUserName = data.matched_user;
+            document.getElementById('message').innerText = `You are connected with ${matchedUserName}`;
+            startCall(matchedUserName);
         });
 
         // Handle no users available
         socket.on('no_users_available', function(message) {
             document.getElementById('message').innerText = message;
         });
-        // Display the current user's ID when received from the server
-        socket.on('your_user_id', function(data) {
-            document.getElementById('userIdDisplay').innerText = `Your User ID: ${data.user_id}`;
-        });
+
         // WebRTC connection setup
-        function startCall(remoteUserId) {
+        function startCall(remoteUserName) {
             peerConnection = new RTCPeerConnection(configuration);
 
             // Add local stream to the peer connection
@@ -96,14 +105,14 @@
                     return peerConnection.setLocalDescription(offer);
                 })
                 .then(() => {
-                    socket.emit('offer', { offer: peerConnection.localDescription, from: userId, to: remoteUserId });
+                    socket.emit('offer', { offer: peerConnection.localDescription, from: userId, to: remoteUserName });
                 })
                 .catch(error => console.error('Error creating offer:', error));
 
             // Handle ICE candidates
             peerConnection.onicecandidate = event => {
                 if (event.candidate) {
-                    socket.emit('ice_candidate', { candidate: event.candidate, to: remoteUserId });
+                    socket.emit('ice_candidate', { candidate: event.candidate, to: remoteUserName });
                 }
             };
 
@@ -118,7 +127,7 @@
 
         // Receive an offer from another user
         socket.on('offer', function(data) {
-            const remoteUserId = data.from;
+            const remoteUserName = data.from;
             peerConnection = new RTCPeerConnection(configuration);
 
             // Add local stream to the peer connection
@@ -133,14 +142,14 @@
                     return peerConnection.setLocalDescription(answer);
                 })
                 .then(() => {
-                    socket.emit('answer', { answer: peerConnection.localDescription, from: userId, to: remoteUserId });
+                    socket.emit('answer', { answer: peerConnection.localDescription, from: userId, to: remoteUserName });
                 })
                 .catch(error => console.error('Error receiving offer:', error));
 
             // Handle ICE candidates
             peerConnection.onicecandidate = event => {
                 if (event.candidate) {
-                    socket.emit('ice_candidate', { candidate: event.candidate, to: remoteUserId });
+                    socket.emit('ice_candidate', { candidate: event.candidate, to: remoteUserName });
                 }
             };
 
