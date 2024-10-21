@@ -79,7 +79,10 @@
         socket.on('no_users_available', function(message) {
             document.getElementById('message').innerText = message;
         });
-
+        // Display the current user's ID when received from the server
+        socket.on('your_user_id', function(data) {
+            document.getElementById('userIdDisplay').innerText = `Your User ID: ${data.user_id}`;
+        });
         // WebRTC connection setup
         function startCall(remoteUserId) {
             peerConnection = new RTCPeerConnection(configuration);
