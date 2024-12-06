@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dental Services Consultation</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2.6.4/dist/email.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3B82F6;
+            --secondary-color: #10B981;
+            --text-color: #1F2937;
+            --background-color: #F3F4F6;
+        }
+
+        body {
+            background-color: var(--background-color);
+            font-family: 'Inter', sans-serif;
+            background-image: "url('/static/video_booking.jpg')";
+            background-size: cover;
+        }
+
+        /* Glassmorphism Container */
+        .glassmorphic-container {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .glassmorphic-container:hover {
+            box-shadow: 0 20px 45px rgba(0,0,0,0.1);
+            transform: translateY(-5px);
+        }
+
+        /* Animated Icons */
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-color);
+            opacity: 0.7;
+            transition: all 0.3s ease;
+        }
+
+        /* Enhanced Input Styling */
+        .custom-input {
+            padding-left: 45px;
+            border: 2px solid transparent;
+            background-color: rgba(59, 130, 246, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .custom-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Vibrant Gradient Button */
+        .vibrant-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .vibrant-btn:hover {
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 15px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .vibrant-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: all 0.6s;
+        }
+
+        .vibrant-btn:hover::before {
+            left: 100%;
+        }
+
+        /* Floating Animations */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .floating-icon {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* Service Boxes */
+        .service-box {
+            transition: all 0.4s ease;
+            background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+            border-radius: 15px;
+        }
+
+        .service-box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 25px rgba(0,0,0,0.1);
+        }
+    </style>
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+          emailjs.init("7Q_sJdnEmxKqJ37wM");
+        });
+      </script>
+</head>
+<body class="p-8">
+    <div class="container mx-auto">
+        <div class="grid md:grid-cols-3 gap-6">
+            <!-- Dental Services Column -->
+            <div class="glassmorphic-container service-box p-6 text-center">
+                <i class="ri-shield-cross-line text-5xl mb-4 text-blue-500 floating-icon mx-auto block w-max"></i>
+                <h3 class="text-2xl font-bold mb-4 text-gray-800">Dental Services</h3>
+                <p class="text-gray-600 mb-4">Expert dental care tailored to your needs</p>
+                <a href="#" class="vibrant-btn px-6 py-3 rounded-lg inline-block">Explore Services</a>
+            </div>
+
+            <!-- Consultation Form Column -->
+            <div class="glassmorphic-container p-6 md:col-span-1">
+                <h3 class="text-2xl font-bold mb-6 text-center text-gray-800">Free Consultation</h3>
+                <form class="space-y-4" id="consultationForm">
+                    <div class="relative">
+                        <i class="ri-user-line input-icon"></i>
+                        <input type="text" placeholder="First Name" id="first_name" name="first_name" class="custom-input w-full p-3 rounded-lg">
+                    </div>
+                    <div class="relative">
+                        <i class="ri-user-line input-icon"></i>
+                        <input type="text" placeholder="Last Name" id="last_name" name="last_name" class="custom-input w-full p-3 rounded-lg">
+                    </div>
+                    <div class="relative">
+                        <i class="ri-phone-line input-icon"></i>
+                        <input type="tel" placeholder="Phone Number" id="phone_number" name="phone_number" class="custom-input w-full p-3 rounded-lg">
+                    </div>
+                    <div class="relative">
+                        <i class="ri-calendar-line input-icon"></i>
+                        <input type="text" placeholder="Preferred Date" id="preferred_date" name="preferred_date" class="custom-input w-full p-3 rounded-lg">
+                    </div>
+                    <div class="relative">
+                        <i class="ri-time-line input-icon"></i>
+                        <input type="text" placeholder="Preferred Time" id="preferred_time" name="preferred_time" class="custom-input w-full p-3 rounded-lg">
+                    </div>
+                    <button type="submit" class="vibrant-btn w-full py-3 rounded-lg">
+                        Book Consultation
+                    </button>
+                </form>
+            </div>
+
+            <!-- Find A Doctor Column -->
+            <div class="glassmorphic-container service-box p-6 text-center">
+                <i class="ri-stethoscope-line text-5xl mb-4 text-green-500 floating-icon mx-auto block w-max"></i>
+                <h3 class="text-2xl font-bold mb-4 text-gray-800">Find A Doctor</h3>
+                <p class="text-gray-600 mb-4">Connect with our top dental professionals</p>
+                <a href="#" class="vibrant-btn px-6 py-3 rounded-lg inline-block">Meet Our Doctors</a>
+            </div>
+        </div>
+    </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2.6.4/dist/email.min.js"></script>
+
+<script>
+
+
+    const form = document.getElementById('consultationForm');
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const formData = {
+            first_name: document.getElementById('first_name').value,
+            last_name: document.getElementById('last_name').value,
+            phone_number: document.getElementById('phone_number').value,
+            preferred_date: document.getElementById('preferred_date').value,
+            preferred_time: document.getElementById('preferred_time').value
+        };
+
+        emailjs.send("service_r15txjp", "template_4ovvy3c", formData)
+            .then(function(response) {
+                alert('Appointment booked successfully!');
+            }, function(error) {
+                alert('Error booking appointment, please try again later.');
+            });
+    });
+</script>
+    </script>
+</body>
+</html>

@@ -37,6 +37,10 @@ def department():
 @app.route('/doctor')
 def doctor():
     return render_template('doctor.html')
+@app.route('/treatments')
+def treatments():
+    # your logic here
+    return render_template('treatments.html')
 
 @app.route('/pricing')
 def pricing():
@@ -46,6 +50,13 @@ def pricing():
 @app.route('/video-call')
 def video_call():
     return render_template('video_call.html')
+
+
+# New route for video booking
+@app.route('/video-booking')
+def video_booking():
+    return render_template('video_booking.html')
+
 
 @socketio.on('join')
 def handle_join(data):
@@ -125,6 +136,3 @@ def handle_disconnect():
     # Emit the updated list of active users
     emit('active_users', {'users': [{'user_id': uid, 'user_name': uname} for uid, uname in active_users.items()]}, broadcast=True)
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # Get the port from environment variables or use 5000
-    socketio.run(app, host='0.0.0.0', port=port, debug=True)
