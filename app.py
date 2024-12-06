@@ -26,6 +26,11 @@ def blog():
 def blog_single():
     return render_template('blog-single.html')
 
+@app.route('/admin-side')
+def admin_side_call():
+    return render_template('admin_side_call.html')
+
+
 @app.route('/contact')
 def contact():
     return render_template('contact.html')
