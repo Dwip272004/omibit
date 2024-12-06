@@ -13,6 +13,39 @@ active_users = {}
 def index():
     return render_template('index.html')
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/blog')
+def blog():
+    return render_template('blog.html')
+
+@app.route('/blog-single')
+def blog_single():
+    return render_template('blog-single.html')
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+@app.route('/department')
+def department():
+    return render_template('department.html')
+
+@app.route('/doctor')
+def doctor():
+    return render_template('doctor.html')
+
+@app.route('/pricing')
+def pricing():
+    return render_template('pricing.html')
+
+# New route for video call
+@app.route('/video-call')
+def video_call():
+    return render_template('video_call.html')
+
 @socketio.on('join')
 def handle_join(data):
     user_id = data['user_id']

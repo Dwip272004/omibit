@@ -1,0 +1,276 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mekalsuta Dental Clinic - Video Consultation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            color: #007bff;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #userIdDisplay {
+            font-size: 1rem;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        #controls {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        video {
+            border: 4px solid #007bff;
+            border-radius: 8px;
+            margin: 10px;
+            width: 48%;
+            height: auto;
+            background-color: #e9ecef;
+        }
+
+        #message {
+            margin: 10px;
+            font-size: 18px;
+            color: #333;
+            text-align: center;
+        }
+
+        #buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        button {
+            margin: 10px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: none;
+            width: 45%;
+        }
+
+        .leave-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .skip-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Additional Responsive Styles */
+        @media (max-width: 768px) {
+            video {
+                width: 100%;
+            }
+
+            #controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #buttons {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+                margin: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Mekalsuta Dental Clinic</h1>
+    <div id="userIdDisplay">Your User ID: </div>
+    <div id="controls">
+        <video id="localVideo" autoplay muted></video>
+        <video id="remoteVideo" autoplay></video>
+    </div>
+    <div id="message">Connecting...</div>
+    <div id="buttons">
+        <button class="leave-btn" id="leaveBtn">Leave</button>
+  
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script>
+        
+        const socket = io.connect();
+        let localStream;
+        let peerConnection;
+        let currentMatchId = null;  // Store the ID of the current matched user
+
+        // Configuration for WebRTC STUN server
+        const configuration = {
+            iceServers: [{
+                urls: 'stun:stun.l.google.com:19302'
+            }]
+        };
+
+        // Generate a random user ID (or use a real user authentication system)
+        const userId = Math.random().toString(36).substring(7);
+        const userName = prompt('Enter your name:');  // Ask for the user's name
+        socket.emit('join', { user_id: userId, user_name: userName });
+
+        // Request media stream (camera and microphone)
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(stream => {
+                localStream = stream;
+                document.getElementById('localVideo').srcObject = stream;
+                socket.emit('request_match', { user_id: userId }); // Request a match after getting local stream
+            })
+            .catch(error => console.error('Error accessing media devices.', error));
+
+        // Handle matching with another user
+        socket.on('match_found', function(data) {
+            const matchedUserId = data.matched_user_id;
+            currentMatchId = matchedUserId;  // Store the matched user ID
+            document.getElementById('message').innerText = `You are connected with ${data.matched_user}`;
+            startCall(matchedUserId);
+        });
+
+        // Handle no users available
+        socket.on('no_users_available', function(message) {
+            document.getElementById('message').innerText = message;
+        });
+
+        // Display the current user's ID when received from the server
+        socket.on('your_user_id', function(data) {
+            document.getElementById('userIdDisplay').innerText = `Your User ID: ${data.user_id}`;
+        });
+
+        // WebRTC connection setup
+        function startCall(remoteUserId) {
+            peerConnection = new RTCPeerConnection(configuration);
+
+            // Add local stream to the peer connection
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            // Create an offer and send to the remote peer via signaling server (Socket.io)
+            peerConnection.createOffer()
+                .then(offer => {
+                    return peerConnection.setLocalDescription(offer);
+                })
+                .then(() => {
+                    socket.emit('offer', { offer: peerConnection.localDescription, from: userId, to: remoteUserId });
+                })
+                .catch(error => console.error('Error creating offer:', error));
+
+            // Handle ICE candidates
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    socket.emit('ice_candidate', { candidate: event.candidate, to: remoteUserId });
+                }
+            };
+
+            // Display remote stream when received
+            peerConnection.ontrack = event => {
+                const remoteVideo = document.getElementById('remoteVideo');
+                if (remoteVideo.srcObject !== event.streams[0]) {
+                    remoteVideo.srcObject = event.streams[0];
+                }
+            };
+        }
+
+        // Receive an offer from another user
+        socket.on('offer', function(data) {
+            const remoteUserId = data.from;
+            peerConnection = new RTCPeerConnection(configuration);
+
+            // Add local stream to the peer connection
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            // Set the received offer as remote description
+            peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+                .then(() => {
+                    return peerConnection.createAnswer();
+                })
+                .then(answer => {
+                    return peerConnection.setLocalDescription(answer);
+                })
+                .then(() => {
+                    socket.emit('answer', { answer: peerConnection.localDescription, from: userId, to: remoteUserId });
+                })
+                .catch(error => console.error('Error receiving offer:', error));
+
+            // Handle ICE candidates
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    socket.emit('ice_candidate', { candidate: event.candidate, to: remoteUserId });
+                }
+            };
+
+            // Display remote stream when received
+            peerConnection.ontrack = event => {
+                const remoteVideo = document.getElementById('remoteVideo');
+                if (remoteVideo.srcObject !== event.streams[0]) {
+                    remoteVideo.srcObject = event.streams[0];
+                }
+            };
+        });
+
+        // Receive an answer from the remote peer
+        socket.on('answer', function(data) {
+            peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
+                .catch(error => console.error('Error setting remote description:', error));
+        });
+
+        // Handle ICE candidates from the other peer
+        socket.on('ice_candidate', function(data) {
+            peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
+                .catch(error => console.error('Error adding received ICE candidate:', error));
+        });
+
+        // Handle the Leave button
+        document.getElementById('leaveBtn').addEventListener('click', () => {
+            socket.emit('leave', { user_id: userId });
+            peerConnection.close();
+            document.getElementById('message').innerText = "You left the chat.";
+            document.getElementById('remoteVideo').srcObject = null;  // Clear the remote video
+        });
+
+        // Handle the Skip button
+        document.getElementById('skipBtn').addEventListener('click', () => {
+            if (currentMatchId) {
+                socket.emit('leave', { user_id: userId });  // Leave the current chat
+                peerConnection.close();
+                document.getElementById('remoteVideo').srcObject = null;  // Clear the remote video
+                document.getElementById('message').innerText = "Skipping to another user...";
+                socket.emit('request_match', { user_id: userId });  // Request a new match
+            }
+        });
+
+    </script>
+</body>
+</html>
