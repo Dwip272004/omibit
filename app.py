@@ -3,7 +3,8 @@ from flask_socketio import SocketIO, emit
 import random
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
+
 socketio = SocketIO(app)
 
 # In-memory dictionary to store active users as {user_id: user_name}
