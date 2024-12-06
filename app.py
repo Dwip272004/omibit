@@ -136,3 +136,7 @@ def handle_disconnect():
     # Emit the updated list of active users
     emit('active_users', {'users': [{'user_id': uid, 'user_name': uname} for uid, uname in active_users.items()]}, broadcast=True)
 
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
